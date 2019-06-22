@@ -798,9 +798,9 @@ public class UnityCommandConsole : MonoBehaviour
 
         RectTransform panelRT = panel.GetComponent<RectTransform>();
         panelRT.anchorMin = new Vector2(0f, 0f);
-        panelRT.anchorMax = new Vector2(1f, 1f);
+        panelRT.anchorMax = new Vector2(1f, 0.3f);
         panelRT.anchoredPosition = new Vector2(0f, 0f);
-        panelRT.sizeDelta = new Vector2(-360f, -195f);
+        panelRT.sizeDelta = new Vector2(0f, 0f);
 
         Image panelImage = panel.GetComponent<Image>();
         panelImage.color = new Color(0f, 0f, 0f, 0.4f);
@@ -865,9 +865,9 @@ public class UnityCommandConsole : MonoBehaviour
         UnityCommandConsole.Instance.consoleInputField = inputField.GetComponent<InputField>();
 
         RectTransform inputFieldRT = inputField.GetComponent<RectTransform>();
-        inputFieldRT.anchorMin = new Vector2(0.5f, 0f);
-        inputFieldRT.anchorMax = new Vector2(0.5f, 0f);
-        inputFieldRT.sizeDelta = new Vector2(425f, 26f);
+        inputFieldRT.anchorMin = new Vector2(0.275f, 0f);
+        inputFieldRT.anchorMax = new Vector2(0.725f, 0f);
+        inputFieldRT.sizeDelta = new Vector2(425f, 23f);
         inputFieldRT.localPosition = new Vector3(0f, -90f, 0f);
         inputFieldRT.anchoredPosition = new Vector2(0f, 18f);
 
@@ -895,6 +895,8 @@ public class UnityCommandConsole : MonoBehaviour
 
         UnityCommandConsole.Instance = go.GetComponent<UnityCommandConsole>();
     }
+
+
 
     private void Awake()
     {
