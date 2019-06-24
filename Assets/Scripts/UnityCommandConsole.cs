@@ -11,6 +11,8 @@ public class UnityCommandConsole : MonoBehaviour
     public Text consoleText;
     public Canvas consoleCanvas;
 
+    public UnityCommandConsoleModule Module;
+
     private const string kUILayerName = "UI";
 
     private const string kStandardSpritePath = "UI/Skin/UISprite.psd";
@@ -765,15 +767,8 @@ public class UnityCommandConsole : MonoBehaviour
         return root;
     }
 
-    public static void Init()
+    private static GameObject CreateConsoleGui()
     {
-        if (UnityCommandConsole.Instance != null)
-        {
-            return;
-        }
-
-        //  GameObject
-        GameObject go = new GameObject("UnityCommandConsoleObject", typeof(UnityCommandConsole));
 
         //  Canvas
         GameObject canvas = new GameObject("UCC_Canvas");
@@ -788,8 +783,6 @@ public class UnityCommandConsole : MonoBehaviour
         canvasScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         canvasScaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
         canvasScaler.referenceResolution = new Vector2(800f, 600f);
-
-        UnityCommandConsole.Instance.consoleCanvas.transform.parent = go.transform;
 
         UnityCommandConsole.Instance.consoleCanvas.gameObject.AddComponent<GraphicRaycaster>();
 
@@ -893,10 +886,47 @@ public class UnityCommandConsole : MonoBehaviour
 
         UnityCommandConsole.SetParentAndAlign(inputField, panel);
 
-        UnityCommandConsole.Instance = go.GetComponent<UnityCommandConsole>();
+        return canvas;
     }
 
+    public static void Init()
+    {
+        if (UnityCommandConsole.Instance != null)
+        {
+            return;
+        }
 
+        //  GameObject
+        GameObject go = new GameObject("UnityCommandConsoleObject", typeof(UnityCommandConsole));
+        GameObject canvas = CreateConsoleGui();
+        UnityCommandConsole.SetParentAndAlign(canvas, go);
+
+        UnityCommandConsole.Instance = go.GetComponent<UnityCommandConsole>();
+        UnityCommandConsole.Instance.Module = new UnityCommandConsoleModule();
+    }
+
+    public void ClearInputAndFocus()
+    {
+        Instance.consoleInputField.ActivateInputField();
+        Instance.consoleInputField.text = string.Empty;
+    }
+
+    public void Clear()
+    {
+        Instance.consoleText.text = string.Empty;
+    }
+
+    public void Print(string msg)
+    {
+        Instance.consoleText.text += "\n" + msg;
+    }
+
+    public void Help()
+    {
+        Instance.Print("---- Available Commands ----");
+        foreach (var cmd in Instance.Module.Commands.Keys)
+            Instance.Print("\t- " + cmd);
+    }
 
     private void Awake()
     {
@@ -923,16 +953,36 @@ public class UnityCommandConsole : MonoBehaviour
         {
             Instance.Active = !Instance.Active;
             Instance.consoleCanvas.gameObject.SetActive(Instance.Active);
-        }
-        if (Input.GetKeyDown(KeyCode.F3))
-        {
-            Instance.consoleText.text += "hello world\n";
+
+            if (Instance.Active)
+                ClearInputAndFocus();
         }
         if(Instance.Active)
         {
             if(Input.GetKeyDown(KeyCode.Return))
             {
-                Instance.consoleText.text += "\nYou entered the command: " + Instance.inputText.text;
+                if (System.String.IsNullOrEmpty(Instance.inputText.text))
+                    return;
+
+                string[] splitCommand = Instance.inputText.text.Split(new char[] {' '}, 2);
+
+                string cmd = splitCommand[0];
+
+                string[] args = new string[] { };
+
+                if (splitCommand.Length > 1)
+                    args = splitCommand[1].Split();
+
+                if (!Module.RunCommand(cmd, args))
+                {
+                    if (Instance.Module.LastError is KeyNotFoundException)
+                        Instance.Print("'" + cmd + "' command not found.");
+                    else
+                        Instance.Print(Instance.Module.GetLastError());
+                }
+                    
+
+                ClearInputAndFocus();
             }
         }
     }
