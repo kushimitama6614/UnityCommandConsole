@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
+using System;
 
 public class UnityCommandConsole : MonoBehaviour
 {
@@ -10,6 +12,7 @@ public class UnityCommandConsole : MonoBehaviour
     public Text inputText;
     public Text consoleText;
     public Canvas consoleCanvas;
+    public GameObject consolePanel;
 
     public UnityCommandConsoleModule Module;
 
@@ -795,18 +798,18 @@ public class UnityCommandConsole : MonoBehaviour
         UnityCommandConsole.Instance.consoleCanvas.gameObject.AddComponent<GraphicRaycaster>();
 
         //  Panel
-        GameObject panel = UnityCommandConsole.CreatePanel(GetStandardResources());
+        Instance.consolePanel = UnityCommandConsole.CreatePanel(GetStandardResources());
 
-        RectTransform panelRT = panel.GetComponent<RectTransform>();
+        RectTransform panelRT = Instance.consolePanel.GetComponent<RectTransform>();
         panelRT.anchorMin = new Vector2(0f, 0f);
         panelRT.anchorMax = new Vector2(1f, 0.3f);
         panelRT.anchoredPosition = new Vector2(0f, 0f);
         panelRT.sizeDelta = new Vector2(0f, 0f);
 
-        Image panelImage = panel.GetComponent<Image>();
+        Image panelImage = Instance.consolePanel.GetComponent<Image>();
         panelImage.color = new Color(0f, 0f, 0f, 0.4f);
 
-        UnityCommandConsole.SetParentAndAlign(panel, canvas);
+        UnityCommandConsole.SetParentAndAlign(Instance.consolePanel, canvas);
 
         //  ScrollView
         GameObject scrollview = UnityCommandConsole.CreateScrollView(GetStandardResources());
@@ -857,7 +860,7 @@ public class UnityCommandConsole : MonoBehaviour
         contentSizeFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
         contentSizeFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-        UnityCommandConsole.SetParentAndAlign(scrollview, panel);
+        UnityCommandConsole.SetParentAndAlign(scrollview, Instance.consolePanel);
 
 
         //  InputField
@@ -892,7 +895,7 @@ public class UnityCommandConsole : MonoBehaviour
         inputFieldPlaceholder.color = new Color(1f, 1f, 1f, 0.90f);
         inputFieldPlaceholder.fontSize = 10;
 
-        UnityCommandConsole.SetParentAndAlign(inputField, panel);
+        UnityCommandConsole.SetParentAndAlign(inputField, Instance.consolePanel);
 
         return canvas;
     }
@@ -913,15 +916,32 @@ public class UnityCommandConsole : MonoBehaviour
         UnityCommandConsole.Instance.Module = new UnityCommandConsoleModule();
     }
 
-    public void ClearInputAndFocus()
+    public void FocusAndClearInput()
+    {
+        FocusInput();
+        ClearInput();
+    }
+
+    public void FocusInput()
     {
         Instance.consoleInputField.ActivateInputField();
-        Instance.consoleInputField.text = string.Empty;
+        Instance.consoleInputField.MoveTextEnd(true);
+        EventSystem.current.SetSelectedGameObject(Instance.consoleInputField.gameObject, null);
+    }
+
+    public void ClearInput()
+    {
+        Instance.consoleInputField.text = "";
     }
 
     public void Clear()
     {
         Instance.consoleText.text = string.Empty;
+    }
+
+    public void FocusConsole()
+    {
+        EventSystem.current.SetSelectedGameObject(Instance.consolePanel, null);
     }
 
     public void Print(string msg)
@@ -963,11 +983,13 @@ public class UnityCommandConsole : MonoBehaviour
             Instance.consoleCanvas.gameObject.SetActive(Instance.Active);
 
             if (Instance.Active)
-                ClearInputAndFocus();
+                FocusAndClearInput();
         }
         if(Instance.Active)
         {
-            if(Input.GetKeyDown(KeyCode.Return))
+            FocusInput();
+
+            if (Input.GetKeyDown(KeyCode.Return))
             {
                 if (System.String.IsNullOrEmpty(Instance.inputText.text))
                     return;
@@ -981,16 +1003,15 @@ public class UnityCommandConsole : MonoBehaviour
                 if (splitCommand.Length > 1)
                     args = splitCommand[1].Split();
 
-                if (!Module.RunCommand(cmd, args))
-                {
+                if(!Module.RunCommand(cmd, args))
+                { 
                     if (Instance.Module.LastError is KeyNotFoundException)
                         Instance.Print("'" + cmd + "' command not found.");
                     else
                         Instance.Print(Instance.Module.GetLastError());
                 }
-                    
 
-                ClearInputAndFocus();
+                FocusAndClearInput();
             }
         }
     }
