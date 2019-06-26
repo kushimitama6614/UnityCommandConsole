@@ -116,13 +116,21 @@ public class UnityCommandConsole : MonoBehaviour
 
         if (s_StandardResources.standard == null)
         {
-            s_StandardResources.standard = AssetDatabase.GetBuiltinExtraResource<Sprite>(kStandardSpritePath);
-            s_StandardResources.background = AssetDatabase.GetBuiltinExtraResource<Sprite>(kBackgroundSpritePath);
-            s_StandardResources.inputField = AssetDatabase.GetBuiltinExtraResource<Sprite>(kInputFieldBackgroundPath);
-            s_StandardResources.knob = AssetDatabase.GetBuiltinExtraResource<Sprite>(kKnobPath);
-            s_StandardResources.checkmark = AssetDatabase.GetBuiltinExtraResource<Sprite>(kCheckmarkPath);
-            s_StandardResources.dropdown = AssetDatabase.GetBuiltinExtraResource<Sprite>(kDropdownArrowPath);
-            s_StandardResources.mask = AssetDatabase.GetBuiltinExtraResource<Sprite>(kMaskPath);
+            //s_StandardResources.standard = AssetDatabase.GetBuiltinExtraResource<Sprite>(kStandardSpritePath);
+            //s_StandardResources.background = AssetDatabase.GetBuiltinExtraResource<Sprite>(kBackgroundSpritePath);
+            //s_StandardResources.inputField = AssetDatabase.GetBuiltinExtraResource<Sprite>(kInputFieldBackgroundPath);
+            //s_StandardResources.knob = AssetDatabase.GetBuiltinExtraResource<Sprite>(kKnobPath);
+            //s_StandardResources.checkmark = AssetDatabase.GetBuiltinExtraResource<Sprite>(kCheckmarkPath);
+            //s_StandardResources.dropdown = AssetDatabase.GetBuiltinExtraResource<Sprite>(kDropdownArrowPath);
+            //s_StandardResources.mask = AssetDatabase.GetBuiltinExtraResource<Sprite>(kMaskPath);
+
+            s_StandardResources.standard = null;
+            s_StandardResources.background = null;
+            s_StandardResources.inputField = null;
+            s_StandardResources.knob = null;
+            s_StandardResources.checkmark = null;
+            s_StandardResources.dropdown = null;
+            s_StandardResources.mask = null;
         }
         
         return s_StandardResources;
@@ -357,7 +365,7 @@ public class UnityCommandConsole : MonoBehaviour
         Image handleImage = handle.AddComponent<Image>();
         handleImage.sprite = resources.standard;
         handleImage.type = Image.Type.Sliced;
-        handleImage.color = s_DefaultSelectableColor;
+        handleImage.color = new Color(0f, 0f, 0f, 0.4f);
 
         RectTransform sliderAreaRect = sliderArea.GetComponent<RectTransform>();
         sliderAreaRect.sizeDelta = new Vector2(-20, -20);
