@@ -8,13 +8,39 @@ using System;
 
 public class UnityCommandConsole : MonoBehaviour
 {
+    public delegate void CommandDelegate(params object[] args);
+    public List<Command> CommandsList;
+    public Dictionary<string, CommandDelegate> Commands;
+    public Dictionary<KeyCode, CommandDelegate> Hotkeys;
+
+    public class Command
+    {
+        public string command;
+        public CommandDelegate function;
+        public KeyCode hotkey;
+        public string description;
+
+        public Command(string cmd, CommandDelegate func, KeyCode key = KeyCode.None, string desc = "")
+        {
+            command = cmd;
+            function = func;
+            hotkey = key;
+            description = desc;
+        }
+    }
+
+    public static UnityCommandConsole Instance { get; private set; }
+
+    private static UnityCommandConsole.Resources s_StandardResources;
+
+    public bool Active { get; private set; }
+
+    #region GUIHelperMethods
     public InputField consoleInputField;
     public Text inputText;
     public Text consoleText;
     public Canvas consoleCanvas;
     public GameObject consolePanel;
-
-    public UnityCommandConsoleModule Module;
 
     private const string kUILayerName = "UI";
 
@@ -36,12 +62,6 @@ public class UnityCommandConsole : MonoBehaviour
     private static Color s_DefaultSelectableColor = new Color(1f, 1f, 1f, 1f);
     private static Color s_PanelColor = new Color(1f, 1f, 1f, 0.392f);
     private static Color s_TextColor = new Color(50f / 255f, 50f / 255f, 50f / 255f, 1f);
-
-    public static UnityCommandConsole Instance { get; private set; }
-
-    private static UnityCommandConsole.Resources s_StandardResources;
-
-    public bool Active { get; private set; }
 
     public struct Resources
     {
@@ -899,27 +919,13 @@ public class UnityCommandConsole : MonoBehaviour
 
         return canvas;
     }
+    #endregion
 
-    public static void Init()
-    {
-        if (UnityCommandConsole.Instance != null)
-        {
-            return;
-        }
-
-        //  GameObject
-        GameObject go = new GameObject("UnityCommandConsoleObject", typeof(UnityCommandConsole));
-        GameObject canvas = CreateConsoleGui();
-        UnityCommandConsole.SetParentAndAlign(canvas, go);
-
-        UnityCommandConsole.Instance = go.GetComponent<UnityCommandConsole>();
-        UnityCommandConsole.Instance.Module = new UnityCommandConsoleModule();
-    }
-
+    #region ConsoleHelperMethods
     public void FocusAndClearInput()
     {
-        FocusInput();
         ClearInput();
+        FocusInput();
     }
 
     public void FocusInput()
@@ -939,11 +945,6 @@ public class UnityCommandConsole : MonoBehaviour
         Instance.consoleText.text = string.Empty;
     }
 
-    public void FocusConsole()
-    {
-        EventSystem.current.SetSelectedGameObject(Instance.consolePanel, null);
-    }
-
     public void Print(string msg)
     {
         Instance.consoleText.text += "\n" + msg;
@@ -952,9 +953,10 @@ public class UnityCommandConsole : MonoBehaviour
     public void Help()
     {
         Instance.Print("---- Available Commands ----");
-        foreach (var cmd in Instance.Module.Commands.Keys)
-            Instance.Print("\t- " + cmd);
+        foreach (Command cmd in Instance.CommandsList)
+            Instance.Print("\t " + cmd.command + (String.IsNullOrEmpty(cmd.description) ? " - No Description" : " - " + cmd.description));
     }
+    #endregion
 
     private void Awake()
     {
@@ -985,6 +987,7 @@ public class UnityCommandConsole : MonoBehaviour
             if (Instance.Active)
                 FocusAndClearInput();
         }
+
         if(Instance.Active)
         {
             FocusInput();
@@ -1003,15 +1006,17 @@ public class UnityCommandConsole : MonoBehaviour
                 if (splitCommand.Length > 1)
                     args = splitCommand[1].Split();
 
-                if(!Module.RunCommand(cmd, args))
-                { 
-                    if (Instance.Module.LastError is KeyNotFoundException)
-                        Instance.Print("'" + cmd + "' command not found.");
-                    else
-                        Instance.Print(Instance.Module.GetLastError());
-                }
+                Commands[cmd](args);
 
                 FocusAndClearInput();
+            }
+            else
+            {
+                foreach( KeyCode key in Instance.Hotkeys.Keys)
+                {
+                    if (key != KeyCode.None && Input.GetKeyDown(key))
+                        Instance.Hotkeys[key]();
+                }
             }
         }
     }
