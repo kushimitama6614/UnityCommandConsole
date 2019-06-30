@@ -12,6 +12,7 @@ public class UnityCommandConsole : MonoBehaviour
     public List<Command> CommandsList;
     public Dictionary<string, CommandDelegate> Commands;
     public Dictionary<KeyCode, CommandDelegate> Hotkeys;
+    public bool Active { get; private set; }
 
     public class Command
     {
@@ -32,8 +33,6 @@ public class UnityCommandConsole : MonoBehaviour
     public static UnityCommandConsole Instance { get; private set; }
 
     private static UnityCommandConsole.Resources s_StandardResources;
-
-    public bool Active { get; private set; }
 
     #region GUIHelperMethods
     public InputField consoleInputField;
@@ -940,7 +939,7 @@ public class UnityCommandConsole : MonoBehaviour
         Instance.consoleInputField.text = "";
     }
 
-    public void Clear()
+    public void Clear(params object[] args)
     {
         Instance.consoleText.text = string.Empty;
     }
@@ -950,7 +949,7 @@ public class UnityCommandConsole : MonoBehaviour
         Instance.consoleText.text += "\n" + msg;
     }
 
-    public void Help()
+    public void Help(params object[] args)
     {
         Instance.Print("---- Available Commands ----");
         foreach (Command cmd in Instance.CommandsList)
@@ -958,12 +957,33 @@ public class UnityCommandConsole : MonoBehaviour
     }
     #endregion
 
+    public static void Init()
+    {
+        if (UnityCommandConsole.Instance != null)
+        {
+            return;
+        }
+
+        //  GameObject
+        GameObject go = new GameObject("UnityCommandConsoleObject", typeof(UnityCommandConsole));
+        GameObject canvas = CreateConsoleGui();
+        UnityCommandConsole.SetParentAndAlign(canvas, go);
+
+        UnityCommandConsole.Instance = go.GetComponent<UnityCommandConsole>();
+
+        Instance.CommandsList = new List<Command>();
+        Instance.Commands = new Dictionary<string, CommandDelegate>();
+        Instance.Hotkeys = new Dictionary<KeyCode, CommandDelegate>();
+
+        AddCommands();
+    }
+
     private void Awake()
     {
         if (Instance == null)
         {
             Instance = this;
-            Instance.Active = true;
+            Instance.Active = false;
             DontDestroyOnLoad(gameObject);
         }
         else
@@ -990,14 +1010,12 @@ public class UnityCommandConsole : MonoBehaviour
 
         if(Instance.Active)
         {
-            FocusInput();
-
             if (Input.GetKeyDown(KeyCode.Return))
             {
                 if (System.String.IsNullOrEmpty(Instance.inputText.text))
                     return;
 
-                string[] splitCommand = Instance.inputText.text.Split(new char[] {' '}, 2);
+                string[] splitCommand = Instance.inputText.text.ToLower().Split(new char[] {' '}, 2);
 
                 string cmd = splitCommand[0];
 
@@ -1006,7 +1024,18 @@ public class UnityCommandConsole : MonoBehaviour
                 if (splitCommand.Length > 1)
                     args = splitCommand[1].Split();
 
-                Commands[cmd](args);
+                try
+                {
+                    Commands[cmd](args);
+                }
+                catch (KeyNotFoundException ex)
+                {
+                    Instance.Print("'" + cmd + "' command not found");
+                }
+                catch (Exception ex)
+                {
+                    Instance.Print("ERROR: " + ex.Message);
+                }
 
                 FocusAndClearInput();
             }
@@ -1020,4 +1049,25 @@ public class UnityCommandConsole : MonoBehaviour
             }
         }
     }
+
+    public static void AddCommands()
+    {
+        Instance.CommandsList.AddRange(new Command[] {
+            new Command("help", Instance.Help, KeyCode.None, "prints this help menu listing the available commands"),
+            new Command("clear", Instance.Clear, KeyCode.F1, "clears the debug console text"),
+
+            // Add mod methods here:
+        });
+
+        foreach (Command cmd in Instance.CommandsList)
+        {
+            Instance.Commands.Add(cmd.command, cmd.function);
+
+            if (cmd.hotkey != KeyCode.None)
+                Instance.Hotkeys.Add(cmd.hotkey, cmd.function);
+        }
+    }
+
+    #region ModMethods
+    #endregion
 }
